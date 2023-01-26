@@ -1,0 +1,52 @@
+version: '3.7'
+
+services:
+  db:
+    image: 'postgres:13.1-alpine'
+    container_name: db
+    expose:
+      - "5433"
+    ports:
+      - "5433:5433"
+    environment:
+      - POSTGRES_USER=postgresshop
+      - POSTGRES_PASSWORD=postgresshop
+      - POSTGRES_DB=shopdb
+    volumes:
+      - /app/postgres/data
+    command: -p 5433
+
+  app:
+    image: 'onlineshop:latest'
+    build:
+      context: src/main/docker
+      dockerfile: Dockerfile
+    ports:
+      - "3000:8080"
+    expose:
+      - "3000"
+    container_name: app
+    depends_on:
+      - db
+    tty: true
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5433/shopdb
+      - SPRING_DATASOURCE_USERNAME=postgresshop
+      - SPRING_DATASOURCE_PASSWORD=postgresshop
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+  vue-ui:
+    build:
+      context: vue-frontend
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    working_dir: /app/vue-frontend
+    depends_on:
+      - app
+    expose:
+      - "8081"
+    ports:
+      - "8081:8080"
+    container_name: vue-ui
+    command: ['npm', 'run', 'serve', '--port 8081']
